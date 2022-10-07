@@ -1,234 +1,241 @@
-const cs = document.querySelector("canvas");
-const cx = cs.getContext("2d");
+const canvas = document.querySelector("canvas");
+const context = canvas.getContext("2d");
+const body = document.body;
+const width = canvas.width;
+const height = canvas.height;
 const imgs = {
-    bgImg: new Image(),
-    bgImgSrc: "./assets/img/bg.png",
-    pTop: new Image(),
-    pTopSrc: "./assets/img/ptop.png",
-    pBottom: new Image(),
-    pBottomSrc: "./assets/img/pbottom.png",
+    bg: new Image(),
+    bgSrc: "./assets/img/bg.png",
+    pipeTop: new Image(),
+    pipeTopSrc: "./assets/img/ptop.png",
+    pipeBottom: new Image("./assets/img/pbottom.png"),
+    pipeBottomSrc: "./assets/img/pbottom.png",
     bird: new Image(),
     birdSrc: "./assets/img/bird-1.png",
     ground: new Image(),
     groundSrc: "./assets/img/ground.png",
 };
-imgs.bgImg.src = imgs.bgImgSrc;
-imgs.pTop.src = imgs.pTopSrc;
-imgs.pBottom.src = imgs.pBottomSrc;
+imgs.bg.src = imgs.bgSrc;
+imgs.pipeTop.src = imgs.pipeTopSrc;
+imgs.pipeBottom.src = imgs.pipeBottomSrc;
 imgs.bird.src = imgs.birdSrc;
 imgs.ground.src = imgs.groundSrc;
 const sfx = {
-    startSnd: new Audio(),
-    startSndSrc: "./assets/sfx/start.wav",
-    flpSnd: new Audio(),
-    flpSndSrc: "./assets/sfx/flap.wav",
-    hitSnd: new Audio(),
-    hitSndSrc: "./assets/sfx/hit.wav",
-    dieSnd: new Audio(),
-    dieSndSrc: "./assets/sfx/die.wav",
-    scoreSnd: new Audio(),
-    scoreSndSrc: "./assets/sfx/score.wav",
+    start: new Audio("./assets/sfx/start.wav"),
+    flap: new Audio("./assets/sfx/flap.wav"),
+    hit: new Audio("./assets/sfx/hit.wav"),
+    die: new Audio("./assets/sfx/die.wav"),
+    score: new Audio("./assets/sfx/score.wav"),
 };
-sfx.startSnd.src = sfx.startSndSrc;
-sfx.flpSnd.src = sfx.flpSndSrc;
-sfx.hitSnd.src = sfx.hitSndSrc;
-sfx.dieSnd.src = sfx.dieSndSrc;
-sfx.scoreSnd.src = sfx.scoreSndSrc;
-const size = {
-    sw: parseInt(cs.width),
-    sh: parseInt(cs.height),
-    birdW: parseInt(45),
-    birdH: parseInt(35),
-    pipeW: parseInt(60),
-    pipeH: parseInt(180),
-    groundW: parseInt(cs.width),
+const bird = {
+    x: 64,
+    y: 0,
+    w: 40,
+    h: 30,
 };
-const birdCords = {
-    birdX: parseInt(64),
-    birdY: parseInt(0),
-};
-const gap = 100;
-const vrtclSpc = parseInt(size.pipeH + gap);
+const gap = 85;
 const pipes = [];
-const body = document.body;
+pipes[0] = { x: width, y: 0, w: 60, h: 180, speed: 2 };
+const vSpace = pipes[0].h + gap;
 let gOver = false;
-let gravity = 5;
 let gState = 0;
 let pressed = false;
-let score = 0;
+let gravity = 5;
 let plays = false;
-let hs = localStorage.getItem("hs");
-pipes[0] = {
-    x: parseInt(size.sw),
-    y: parseInt(0),
-};
+let score = 0;
+let highScore = localStorage.getItem("hs");
+
 body.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowUp") {
+    if (e.key === "ArrowUp" || e.key === "Up") {
         if (!gOver && gState === 1 && pressed === false) {
             pressed = true;
-            sfx.flpSnd.play();
-            parseInt((gravity = -4));
+            sfx.flap.play();
+            Math.floor((gravity = -4));
             (imgs.bird.src = "./assets/img/bird-2.png"),
                 setTimeout(() => {
-                    parseInt((gravity = 3));
+                    Math.floor((gravity = 2));
                     pressed = false;
                 }, 200);
             setTimeout(() => (imgs.bird.src = "./assets/img/bird-1.png"), 150);
         }
     } else if (gState === 0 && e.key === "Enter") {
-        sfx.startSnd.play();
-        cs.style.border = "none";
+        sfx.start.play();
+        canvas.style.border = "none";
         gState = 1;
     } else if (gState === 1 && e.key.toLowerCase() === "r") {
         location.reload();
     }
 });
-cs.addEventListener("click", () => {
+
+canvas.addEventListener("click", () => {
     if (!gOver && gState === 1 && pressed === false) {
         pressed = true;
-        sfx.flpSnd.play();
-        parseInt((gravity = -4));
+        sfx.flap.play();
+        Math.floor((gravity = -4));
         (imgs.bird.src = "./assets/img/bird-2.png"),
             setTimeout(() => {
-                parseInt((gravity = 3));
+                Math.floor((gravity = 2));
                 pressed = false;
             }, 200);
         setTimeout(() => (imgs.bird.src = "./assets/img/bird-1.png"), 150);
     } else if (gState === 0) {
-        sfx.startSnd.play();
+        sfx.start.play();
+        canvas.style.border = "none";
         gState = 1;
-        cs.style.border = "none";
     }
 });
-const colDetector = (i) => {
+
+const drawBackground = () => {
+    context.fillStyle = "#00d1ff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(imgs.bg, 0, height / 2, width, height / 2);
+};
+
+const drawBird = () => {
+    context.drawImage(
+        imgs.bird,
+        Math.floor(bird.x),
+        Math.floor(bird.y),
+        bird.w,
+        bird.h
+    );
+};
+
+const clear = () => context.clearRect(0, 0, width, height);
+
+const spawnPipes = (i) => {
+    if (pipes.length && Math.floor(pipes[i].x) === Math.floor(width / 2)) {
+        pipes.push({
+            x: width,
+            y: Math.floor((Math.random() * pipes[0].h) / 2) - pipes[0].h / 2,
+            w: pipes[0].w,
+            h: pipes[0].h,
+            speed: pipes[0].speed,
+        });
+        score++;
+    } else if (
+        i > 0 &&
+        pipes.length &&
+        Math.floor(pipes[i - 1].x === -pipes[0].w)
+    ) {
+        pipes.shift();
+    }
+};
+
+const moveBird = () => Math.floor((bird.y += gravity));
+
+const movePipes = (j) => (pipes[j].x -= pipes[0].speed);
+
+const drawPipes = (i) => {
+    context.drawImage(
+        imgs.pipeTop,
+        Math.floor(pipes[i].x),
+        Math.floor(pipes[i].y),
+        pipes[0].w,
+        pipes[0].h
+    );
+    context.drawImage(
+        imgs.pipeBottom,
+        Math.floor(pipes[i].x),
+        Math.floor(pipes[i].y + vSpace),
+        pipes[0].w,
+        pipes[0].h
+    );
+};
+
+const collisions = (i) => {
     if (!gOver && gState === 1) {
-        setInterval(() => parseInt((size.groundW = size.sw + 24)), 10);
-        setInterval(() => parseInt((size.groundW = size.sw)), 20);
-        const birdLeft = parseInt(birdCords.birdX);
-        const birdRight = parseInt(birdCords.birdX + size.birdW);
-        const birdTop = parseInt(birdCords.birdY);
-        const birdBottom = parseInt(birdCords.birdY + size.birdH);
-        const pipeLeft = parseInt(pipes[i].x);
-        const pipeRight = parseInt(pipes[i].x + size.pipeW);
-        const pipeTop = parseInt(pipes[i].y + vrtclSpc);
-        const pipeBottom = parseInt(pipes[i].y + size.pipeH);
+        const birdLeft = Math.floor(bird.x);
+        const birdRight = Math.floor(bird.x + bird.w);
+        const birdTop = Math.floor(bird.y);
+        const birdBottom = Math.floor(bird.y + bird.h);
+        const pipeLeft = Math.floor(pipes[i].x);
+        const pipeRight = Math.floor(pipes[i].x + pipes[0].w);
+        const pipeTop = Math.floor(pipes[i].y + vSpace + 5);
+        const pipeBottom = Math.floor(pipes[i].y + pipes[0].h - 5);
         if (
             birdRight >= pipeLeft &&
             birdLeft <= pipeRight &&
             (birdTop <= pipeBottom || birdBottom >= pipeTop)
         ) {
-            sfx.hitSnd.play();
+            sfx.hit.play();
             gOver = true;
-        } else if (birdBottom === parseInt(size.sh - size.sh / 4)) {
-            sfx.dieSnd.play();
+        } else if (birdBottom === Math.floor(height - height / 4)) {
+            sfx.die.play();
             gOver = true;
         } else if (plays === false && birdRight >= pipeRight) {
             plays = true;
-            sfx.scoreSnd.play();
+            sfx.score.play();
             setTimeout(() => (plays = false), 1000);
         }
     }
 };
-const gLoop = () => {
-    if (!gOver && gState === 1) {
-        cx.clearRect(0, 0, size.sw, size.sh);
-        cx.fillStyle = "#00d1ff";
-        cx.fillRect(0, 0, size.sw, size.sh);
-        cx.drawImage(
-            imgs.bgImg,
-            0,
-            parseInt(size.sh / 2),
-            parseInt(size.sw),
-            parseInt(size.sh / 2)
-        );
-        parseInt((birdCords.birdY += gravity));
-        for (let i = 0; i < pipes.length; i++) {
-            colDetector(i);
-            pipes[i].x -= 2;
-            if (
-                pipes.length &&
-                parseInt(pipes[i].x) === parseInt(size.sw / 2)
-            ) {
-                pipes.push({
-                    x: parseInt(size.sw),
-                    y: parseInt(
-                        Math.floor((Math.random() * size.pipeH) / 2) -
-                            size.pipeH / 2
-                    ),
-                });
-                score++;
-            } else if (
-                i > 0 &&
-                pipes.length &&
-                parseInt(pipes[i - 1].x === -size.pipeW)
-            ) {
-                pipes.shift();
-            }
-        }
-        for (let j = 0; j < pipes.length; j++) {
-            cx.drawImage(
-                imgs.pTop,
-                parseInt(pipes[j].x),
-                parseInt(pipes[j].y),
-                size.pipeW,
-                size.pipeH
-            );
-            cx.drawImage(
-                imgs.pBottom,
-                parseInt(pipes[j].x),
-                parseInt(pipes[j].y + vrtclSpc),
-                size.pipeW,
-                size.pipeH
-            );
-        }
-        cx.drawImage(
-            imgs.bird,
-            parseInt(birdCords.birdX),
-            parseInt(birdCords.birdY),
-            parseInt(size.birdW),
-            parseInt(size.birdH)
-        );
-        cx.drawImage(
-            imgs.ground,
-            0,
-            parseInt(size.sh - size.sh / 4),
-            parseInt(size.groundW),
-            parseInt(size.sh / 4)
-        );
-        cx.fillStyle = "black";
-        cx.font = "14px Consolas";
-        cx.fillText(`Score: ${score}`, 10, 20);
-        hs ? cx.fillText(`High Score: ${hs}`, 10, 40) : null;
-    } else if (gOver) {
-        cx.clearRect(0, 0, size.sw, size.sh);
-        cs.style.backgroundColor = "black";
-        cx.fillStyle = "red";
-        cx.font = "24px Tahoma";
-        cx.fillText(`Game Over!`, 100, 240);
-        score > hs ? localStorage.setItem("hs", score) : null;
-        setTimeout(() => location.reload(), 500);
-    }
-    requestAnimationFrame(gLoop);
+
+const drawGround = () => {
+    context.drawImage(
+        imgs.ground,
+        0,
+        Math.floor(height - height / 4),
+        Math.floor(width),
+        Math.floor(height / 4)
+    );
 };
-if (gState === 0) {
-    cs.style.backgroundColor = "black";
-    cx.fillStyle = "yellow";
-    cx.font = "14px Consolas";
-    cx.fillText(
+
+const drawScore = () => {
+    context.fillStyle = "black";
+    context.font = "14px Consolas";
+    context.fillText(`Score: ${score}`, 10, 20);
+    highScore ? context.fillText(`High Score: ${highScore}`, 10, 40) : null;
+};
+
+const drawStartScreen = () => {
+    canvas.style.backgroundColor = "black";
+    context.fillStyle = "yellow";
+    context.font = "14px Consolas";
+    context.fillText(
         "Press enter or click to start the game,",
         12,
-        parseInt(size.sh / 2 - 28)
+        Math.floor(height / 2 - 28)
     );
-    cx.fillText(
+    context.fillText(
         "\nPress ↑ or click to control the bird,",
         4,
-        parseInt(size.sh / 2)
+        Math.floor(height / 2)
     );
-    cx.fillText(
+    context.fillText(
         "\nPress R to restart the game.",
         4,
-        parseInt(size.sh / 2 + 28)
+        Math.floor(height / 2 + 28)
     );
-}
+};
 
-gLoop();
+const showGameOver = () => {
+    clear();
+    canvas.style.backgroundColor = "black";
+    context.fillStyle = "red";
+    context.font = "24px Tahoma";
+    context.fillText("Game Over!", 100, 240);
+    score > highScore ? localStorage.setItem("hs", score) : null;
+    setTimeout(() => location.reload(), 500);
+};
+
+if (gState === 0) drawStartScreen();
+
+const mainLoop = () => {
+    if (!gOver && gState === 1) {
+        drawBackground();
+        drawBird();
+        for (let i = 0; i < pipes.length; i++) drawPipes(i);
+        moveBird();
+        for (let j = 0; j < pipes.length; j++) {
+            spawnPipes(j);
+            movePipes(j);
+            collisions(j);
+        }
+        drawGround();
+        drawScore();
+    } else if (gOver) showGameOver();
+    requestAnimationFrame(mainLoop);
+};
+
+mainLoop();
