@@ -16,6 +16,16 @@ body {
 }
 
 canvas {
-    border: 1px solid yellow;
+    border: 0.25vmin solid yellow;
     cursor: pointer;
+    overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    @media (min-height: 600px) {
+        canvas {
+            height: 95vmin;
+            width: 60vmin;
+        }
+    }
 }
